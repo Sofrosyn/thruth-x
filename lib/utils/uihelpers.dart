@@ -41,19 +41,19 @@ class UIHelpers {
   }
 
   static Widget slider(double value, Function(double newValue) onChanged,
-      {double max, double min, int division}) {
+      {double? max, double? min, int? division}) {
     return SliderWidget(
       value: value,
       onChnaged: onChanged,
-      max: max,
-      min: min,
+      max: max!,
+      min: min!,
       division: division,
     );
   }
 
   static Widget dropDown(
-      List<String> items, Function(String val) onChanged, String value,
-      {String hint}) {
+      List<String> items, void Function(String? val) onChanged, String value,
+      {String? hint}) {
     return Container(
       margin: EdgeInsets.only(
         top: 10,
@@ -62,7 +62,7 @@ class UIHelpers {
       ),
       decoration: BoxDecoration(
           borderRadius: BorderRadius.all(Radius.circular(5)),
-          border: Border.all(color: Colors.grey[400])),
+          border: Border.all(color: Colors.grey.shade400)),
       child: DropdownSearch<String>(
         showSearchBox: true,
         dropdownSearchDecoration: InputDecoration(
@@ -74,12 +74,9 @@ class UIHelpers {
           border: InputBorder.none,
           floatingLabelBehavior: FloatingLabelBehavior.never,
         ),
-        searchBoxDecoration: InputDecoration(
-          hintText: hint,
-        ),
         mode: Mode.DIALOG,
         items: items,
-        itemAsString: (item) => item,
+        itemAsString: (item) => "${item}",
         hint: hint,
         onChanged: onChanged,
       ),

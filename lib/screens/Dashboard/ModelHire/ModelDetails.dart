@@ -18,8 +18,8 @@ import 'package:truthinx/screens/Widgets/RoundedTabBarIndicator.dart';
 import 'package:truthinx/screens/new_proposals/new_proposals_page.dart';
 
 class ModelDetails extends StatefulWidget {
-  final DocumentSnapshot modelDetail;
-  final bool isClient;
+  final DocumentSnapshot? modelDetail;
+  final bool? isClient;
   ModelDetails({this.modelDetail, this.isClient});
 
   @override
@@ -28,8 +28,8 @@ class ModelDetails extends StatefulWidget {
 
 class _ModelDetailsState extends State<ModelDetails> {
   TextEditingController _proposalController = TextEditingController();
-   ProfileServices profileData = ProfileServices();
-   AppUser user;
+  ProfileServices profileData = ProfileServices();
+  AppUser? user;
   @override
   void dispose() {
     _proposalController.dispose();
@@ -87,10 +87,11 @@ class _ModelDetailsState extends State<ModelDetails> {
                                 tag: widget.modelDetail.hashCode,
                                 child: CircleAvatar(
                                   radius: 55,
-                                  backgroundImage: widget.modelDetail["dp"] ==
+                                  backgroundImage: widget.modelDetail!["dp"] ==
                                           "default"
                                       ? AssetImage('assets/userP.png')
-                                      : NetworkImage(widget.modelDetail["dp"]),
+                                      : NetworkImage(widget.modelDetail!["dp"])
+                                          as ImageProvider<Object>?,
                                 ),
                               ),
                             ),
@@ -101,7 +102,7 @@ class _ModelDetailsState extends State<ModelDetails> {
                     ),
                   ),
                   Text(
-                    "${widget.modelDetail["first_name"]}  ${widget.modelDetail["last_name"]}"
+                    "${widget.modelDetail!["first_name"]}  ${widget.modelDetail!["last_name"]}"
                         .toUpperCase(),
                     style: TextStyle(
                       fontSize: 20,
@@ -110,7 +111,7 @@ class _ModelDetailsState extends State<ModelDetails> {
                     ),
                   ),
                   SizedBox(height: 5),
-                  widget.modelDetail["verification"] == "VERIFIED"
+                  widget.modelDetail!["verification"] == "VERIFIED"
                       ? Expanded(
                           child: Column(
                             children: [
@@ -122,7 +123,7 @@ class _ModelDetailsState extends State<ModelDetails> {
                                   SizedBox(width: 5),
                                   Text(
                                     //"widget.modelDetail[city]",
-                                    widget.modelDetail["zipCode"],
+                                    widget.modelDetail!["zipCode"],
                                     style: TextStyle(
                                       color: Color(0xFF7C7671),
                                     ),
@@ -137,24 +138,31 @@ class _ModelDetailsState extends State<ModelDetails> {
                                 children: [
                                   Visibility(
                                     visible: true,
-                                                                      child: Card(
+                                    child: Card(
                                       color: Color(0xFFF08740),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Container(
-                                        width: MediaQuery.of(context).size.width *
-                                            0.75,
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.75,
                                         height: 50,
                                         child: InkWell(
                                             onTap: () {
                                               // openProposal();
 
-                                              Navigator.push(context, MaterialPageRoute(builder:(_)=> ProposalsDetails()));
+                                              Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          ProposalsDetails(
+                                                              details: widget
+                                                                  .modelDetail)));
                                             },
                                             child: Center(
                                               child: Text(
-                                                  "\$${widget.modelDetail["hourlyRate"]}/hr",
+                                                  "\$${widget.modelDetail!["hourlyRate"]}/hr",
                                                   style: TextStyle(
                                                       fontFamily: GoogleFonts
                                                               .varelaRound()
@@ -179,11 +187,14 @@ class _ModelDetailsState extends State<ModelDetails> {
                                         ),
                                         onPressed: () {
                                           Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      InstaProfileWebView(
-                                                          "https://www.instagram.com/${widget.modelDetail["instagram_username"]}/")));
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  InstaProfileWebView(
+                                                "https://www.instagram.com/${widget.modelDetail!["instagram_username"]}/",
+                                              ),
+                                            ),
+                                          );
                                         }),
                                   ),
                                 ],
@@ -191,6 +202,7 @@ class _ModelDetailsState extends State<ModelDetails> {
                               TabBar(
                                 indicatorSize: TabBarIndicatorSize.values[1],
                                 //indicatorPadding: EdgeInsets.only(right: 40),
+                                isScrollable: true,
                                 indicatorColor: Colors.white,
                                 indicator: RoundUnderlineTabIndicator(
                                     borderSide: BorderSide(
@@ -201,44 +213,38 @@ class _ModelDetailsState extends State<ModelDetails> {
 
                                 tabs: [
                                   Tab(
-                                    child: Row(
-                                      children: [Text("Portfolio")],
-                                    ),
+                                    child: Text("Portfolio"),
                                   ),
                                   Tab(
-                                    child: Row(
-                                      children: [Text("Categories")],
-                                    ),
+                                    child: Text("Categories", maxLines: 1),
                                   ),
                                   Tab(
-                                    child: Row(
-                                      children: [Text("Attributes")],
-                                    ),
+                                    child: Text("Attributes"),
                                   ),
                                   Tab(
-                                    child: Row(
-                                      children: [Text("Skills")],
-                                    ),
+                                    child: Text("Skills"),
                                   )
                                 ],
                               ),
                               Expanded(
-                                child: TabBarView(children: [
-                                  Portfolio(
-                                    bestPhotos:
-                                        widget.modelDetail["bestPhotos"],
-                                  ),
-                                  ModelCategories(
-                                      categories:
-                                          widget.modelDetail["categories"]),
-                                  ModelAttributes(
-                                    attributes:
-                                        widget.modelDetail["attributes"],
-                                  ),
-                                  ModelSkills(
-                                    skills: widget.modelDetail["skills"],
-                                  ),
-                                ]),
+                                child: TabBarView(
+                                  children: [
+                                    Portfolio(
+                                      bestPhotos:
+                                          widget.modelDetail!["bestPhotos"],
+                                    ),
+                                    ModelCategories(
+                                        categories:
+                                            widget.modelDetail!["categories"]),
+                                    ModelAttributes(
+                                      attributes:
+                                          widget.modelDetail!["attributes"],
+                                    ),
+                                    ModelSkills(
+                                      skills: widget.modelDetail!["skills"],
+                                    ),
+                                  ],
+                                ),
                               )
                             ],
                           ),
@@ -285,7 +291,7 @@ class _ModelDetailsState extends State<ModelDetails> {
         context: context,
         builder: (context) {
           return SingleChildScrollView(
-                      child: Container(
+            child: Container(
                 decoration: BoxDecoration(
                   color: Color(0xFF28201A),
                   borderRadius: BorderRadius.only(
@@ -306,7 +312,8 @@ class _ModelDetailsState extends State<ModelDetails> {
                                 color: Colors.white,
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                fontFamily: GoogleFonts.varelaRound().fontFamily,
+                                fontFamily:
+                                    GoogleFonts.varelaRound().fontFamily,
                               )),
                         ),
                         Padding(
@@ -337,24 +344,25 @@ class _ModelDetailsState extends State<ModelDetails> {
                         ),
                       ),
                     ),
-                     Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: Colors.grey[300],
-                                    child: Image.asset(
-                                      "assets/coin-stack.png",
-                                      height: 24,
-                                    ),
-                                  ),
-                                  SizedBox(width: 10),
-                                  Text("Budget:"),
-                                  SizedBox(width: 10),
-                                  Text("\$${widget.modelDetail["hourlyRate"]} / hour")
-                                ],
-                              ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0, vertical: 10),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors.grey[300],
+                            child: Image.asset(
+                              "assets/coin-stack.png",
+                              height: 24,
                             ),
+                          ),
+                          SizedBox(width: 10),
+                          Text("Budget:"),
+                          SizedBox(width: 10),
+                          Text("\$${widget.modelDetail!["hourlyRate"]} / hour")
+                        ],
+                      ),
+                    ),
                     Card(
                       color: Color(0xFFF08740),
                       shape: RoundedRectangleBorder(
@@ -370,14 +378,12 @@ class _ModelDetailsState extends State<ModelDetails> {
                             child: Center(
                               child: Text("Send",
                                   style: TextStyle(
-                                      fontFamily:
-                                          GoogleFonts.varelaRound().fontFamily)),
+                                      fontFamily: GoogleFonts.varelaRound()
+                                          .fontFamily)),
                             )),
                       ),
                     ),
-                    SizedBox(
-                      height: 10
-                    ),
+                    SizedBox(height: 10),
                   ],
                 )),
           );
@@ -389,40 +395,50 @@ class _ModelDetailsState extends State<ModelDetails> {
       Fluttertoast.showToast(msg: "Please write a custom Offer");
       return;
     }
-    user = await  profileData.getLocalUser();
+    user = await profileData.getLocalUser();
     String docId = DateTime.now().millisecondsSinceEpoch.toString();
-    DocumentSnapshot client = await FirebaseFirestore.instance.collection("user").doc(FirebaseAuth.instance.currentUser.uid).get();
-    FirebaseFirestore.instance.collection("user").doc(widget.modelDetail.id).collection("MyProposals").doc(docId).set({
-      "proposal" : _proposalController.text,
-      "clientId" : FirebaseAuth.instance.currentUser.uid,
-      "clientEmail" : user.email,
-      "clientName": "${user.first_name} ${user.last_name}",
+    DocumentSnapshot client = await FirebaseFirestore.instance
+        .collection("user")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    FirebaseFirestore.instance
+        .collection("user")
+        .doc(widget.modelDetail!.id)
+        .collection("MyProposals")
+        .doc(docId)
+        .set({
+      "proposal": _proposalController.text,
+      "clientId": FirebaseAuth.instance.currentUser!.uid,
+      "clientEmail": user!.email,
+      "clientName": "${user!.first_name} ${user!.last_name}",
       "order": DateTime.now().millisecondsSinceEpoch,
-      "time":Timestamp.now(),
+      "time": Timestamp.now(),
       "clientDP": client["dp"],
-      "rate": widget.modelDetail["hourlyRate"], 
-
+      "rate": widget.modelDetail!["hourlyRate"],
     });
-     FirebaseFirestore.instance.collection("user").doc(FirebaseAuth.instance.currentUser.uid).collection("MyProposals").doc(docId).set({
-      "proposal" : _proposalController.text,
-      "modelId" : widget.modelDetail.id,
-      "modelEmail" :  widget.modelDetail["email"],
-      "modelName":"${widget.modelDetail["first_name"]}  ${widget.modelDetail["last_name"]}",
+    FirebaseFirestore.instance
+        .collection("user")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection("MyProposals")
+        .doc(docId)
+        .set({
+      "proposal": _proposalController.text,
+      "modelId": widget.modelDetail!.id,
+      "modelEmail": widget.modelDetail!["email"],
+      "modelName":
+          "${widget.modelDetail!["first_name"]}  ${widget.modelDetail!["last_name"]}",
       "order": DateTime.now().millisecondsSinceEpoch,
-      "time":Timestamp.now(),
-      "modelDp": widget.modelDetail["dp"],
-      
-      "rate": widget.modelDetail["hourlyRate"],
-
-
+      "time": Timestamp.now(),
+      "modelDp": widget.modelDetail!["dp"],
+      "rate": widget.modelDetail!["hourlyRate"],
     });
 
     sendNotifications(
-                                  bodyText:
-                                     "${user.first_name} ${user.last_name}, have sent you a proposal, please visit My Proposals section to track it.",
-                                  id: widget.modelDetail.id,
-                                  title: "Mew Project!",
-                                );
+      bodyText:
+          "${user!.first_name} ${user!.last_name}, have sent you a proposal, please visit My Proposals section to track it.",
+      id: widget.modelDetail!.id,
+      title: "Mew Project!",
+    );
     Fluttertoast.showToast(msg: "Proposal sent!");
     Navigator.pop(context);
     _proposalController.clear();

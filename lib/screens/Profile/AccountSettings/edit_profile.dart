@@ -19,15 +19,15 @@ class EditProfile extends StatefulWidget {
 class _EditProfileState extends State<EditProfile> {
   TextEditingController f_name = TextEditingController();
   TextEditingController l_name = TextEditingController();
-  String selectedGender = '';
+  String? selectedGender = '';
   bool loading = false;
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
 
-    f_name..text = widget.user.first_name;
-    l_name..text = widget.user.last_name;
+    f_name..text = widget.user.first_name!;
+    l_name..text = widget.user.last_name!;
   }
 
   @override
@@ -89,7 +89,7 @@ class _EditProfileState extends State<EditProfile> {
                   padding: const EdgeInsets.all(8.0),
                   child: DropdownSearch<String>(
                     mode: Mode.MENU,
-                    showSelectedItem: true,
+                    showSelectedItems: true,
                     items: ["Male", "Female", "Others", 'Prefer Not to answer'],
                     label: "Gender",
                     hint: "Select Gender",
@@ -101,10 +101,6 @@ class _EditProfileState extends State<EditProfile> {
                     selectedItem: widget.user.gender != "default"
                         ? widget.user.gender
                         : "Prefer Not to answer",
-                    searchBoxDecoration: InputDecoration(
-                        border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(300),
-                    )),
                   ),
                 ),
                 Divider(),
@@ -154,19 +150,19 @@ class _EditProfileState extends State<EditProfile> {
   updateProfileData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    List<String> userData = prefs.getStringList("userData");
+    List<String?>? userData = prefs.getStringList("userData");
 
-    userData[1] = f_name.text.trim();
+    userData![1] = f_name.text.trim();
     userData[2] = l_name.text.trim();
-    if (selectedGender.isNotEmpty) {
+    if (selectedGender!.isNotEmpty) {
       userData[4] = selectedGender;
     } else {
       selectedGender = "default";
     }
-    User user = FirebaseAuth.instance.currentUser;
+    User? user = FirebaseAuth.instance.currentUser;
     prefs.setStringList("userData", userData);
 
-    FirebaseFirestore.instance.collection("user").doc(user.uid).update({
+    FirebaseFirestore.instance.collection("user").doc(user!.uid).update({
       "first_name": userData[1],
       "last_name": userData[2],
       'gender': selectedGender,
@@ -176,21 +172,17 @@ class _EditProfileState extends State<EditProfile> {
       });
       Fluttertoast.showToast(msg: "Successfuly Updated Profile Data!");
 
-
-      if(widget.user.role == "Client"){
-Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => MainScreenCustomer()),
-          (route) => false);
-      }
-      else{
-
+      if (widget.user.role == "Client") {
         Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => MainScreenModel()),
-          (route) => false);
+            context,
+            MaterialPageRoute(builder: (context) => MainScreenCustomer()),
+            (route) => false);
+      } else {
+        Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => MainScreenModel()),
+            (route) => false);
       }
-      
     });
   }
 }

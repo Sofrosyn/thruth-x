@@ -1,7 +1,14 @@
+import 'dart:developer';
+
 import 'package:checkbox_grouped/checkbox_grouped.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:insta_public_api/models/response_model.dart';
+import 'package:truthinx/Services/ProfileServices.dart';
+import 'package:truthinx/Services/proposal_services.dart';
 import 'package:truthinx/screens/new_proposals/proposal_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
@@ -9,7 +16,8 @@ import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'checkbox_widget.dart';
 
 class ProposalsDetails extends StatefulWidget {
-  const ProposalsDetails({Key key}) : super(key: key);
+  DocumentSnapshot? details;
+  ProposalsDetails({Key? key, this.details}) : super(key: key);
 
   @override
   State<ProposalsDetails> createState() => _ProposalsDetailsState();
@@ -24,36 +32,45 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
     "4 Hours",
     "6 Hours",
     "8 Hours",
-    "1 day"
+    "10 Hours",
+    "12 Hours",
+    "1 Day"
   ];
-  String selectedJobType = '';
-  String estimatedDuration = '';
+  String? selectedJobType = '';
+  String? estimatedDuration = '';
   GroupController checkBoxController = GroupController();
 
+  String isMakeupReady = '';
 //firebase
 //
   bool passwordVisibility = false;
   bool isLoading = false;
   final _formKey = GlobalKey<FormState>();
 
-  TextEditingController _firstName = TextEditingController();
-  TextEditingController _lastName = TextEditingController();
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-  TextEditingController middlenameController = TextEditingController();
+  // TextEditingController _firstName = TextEditingController();
+  // TextEditingController _lastName = TextEditingController();
+  // TextEditingController emailController = TextEditingController();
+  // TextEditingController passwordController = TextEditingController();
+  // TextEditingController middlenameController = TextEditingController();
+  TextEditingController cityController = TextEditingController();
+  TextEditingController stateController = TextEditingController();
+  TextEditingController zipController = TextEditingController();
+  TextEditingController wardrobController = TextEditingController();
+  TextEditingController anythingElseController = TextEditingController();
 
   String isProvidingWardrobe = '';
 
-  bool hasWardrobe;
-  String startTime;
-  String date;
-
+  bool? hasWardrobe;
+  String? startTime;
+  String? date;
+  List<String> locations = [];
   int _radioValue1 = -1;
-
+  List<DateTime> _selectedDates = [];
   String _selectedDate = '';
   String _dateCount = '';
   String _range = '';
   String _rangeCount = '';
+  int range = 0;
 
   /// called whenever a selection changed on the date picker widget.
   void _onSelectionChanged(DateRangePickerSelectionChangedArgs args) {
@@ -83,12 +100,66 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
         _dateCount = args.value.length.toString();
       } else {
         _rangeCount = args.value.length.toString();
+        print(_rangeCount);
+      }
+      _rangeCount = args.value.length.toString();
+      range = args.value.length;
+
+      if (range <= 5) {
+        _selectedDates = args.value;
+      }
+      if (range > 5) {
+        Fluttertoast.showToast(
+            msg: "please select upto 5 dates. Rest will not be counted");
       }
     });
   }
 
+  void _saveLocation() {
+    if (zipController.text.trim().isEmpty &&
+        cityController.text.trim().isEmpty &&
+        stateController.text.trim().isEmpty) {
+      Fluttertoast.showToast(msg: "please enter either zip or city and state");
+    } else {
+      if (locations.length >= 5) {
+        Fluttertoast.showToast(
+          msg: "Select upto 5 locations",
+        );
+      } else {
+        setState(() {
+          if (zipController.text.trim().isEmpty) {
+            if (cityController.text.trim().isEmpty ||
+                stateController.text.trim().isEmpty) {
+              Fluttertoast.showToast(msg: "please enter both city and state");
+            } else {
+              locations.add(
+                  "${cityController.text.trim()}, ${stateController.text.trim()}");
+            }
+          } else {
+            locations.add(zipController.text.trim());
+          }
+          zipController.text = "";
+          stateController.text = "";
+          cityController.text = "";
+        });
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    if ((widget.details!.data() as dynamic).containsKey("categories")) {
+      jobTypeList = widget.details!["categories"].cast<String>();
+    } else {
+      jobTypeList = <String>[];
+    }
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return Scaffold(
       backgroundColor: Colors.black.withOpacity(0.88),
       body: ListView(children: [
@@ -142,7 +213,7 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                       ])),
                   child: Center(
                     child: Text(
-                      (startTime != null) ? startTime : "CHOOSE START TIME",
+                      (startTime != null) ? startTime! : "CHOOSE START TIME",
                       style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold),
                     ),
@@ -196,6 +267,7 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                                       .subtract(const Duration(days: 4)),
                                   DateTime.now().add(const Duration(days: 3)),
                                 ),
+                                initialSelectedDates: _selectedDates,
                                 confirmText: "SET",
                                 onSubmit: (value) {
                                   print(value.toString());
@@ -216,13 +288,40 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                   child: Center(
                       child: Text((_selectedDate.isNotEmpty)
                           ? _selectedDate
-                          : "SELECT DATE")),
+                          : 'Potential Dates')),
                 ),
               ),
             ),
           ),
           SizedBox(
             height: 10,
+          ),
+          Visibility(
+            visible: _selectedDates.length > 0 ? true : false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: Container(
+                width: width,
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.start,
+                  children: List.generate(
+                    _selectedDates.length,
+                    (index) => Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 3.0, vertical: 5.0),
+                      margin: EdgeInsets.all(3.0),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(25.0),
+                      ),
+                      child: Text(
+                        "${DateFormat("dd-MMM-yyyy").format(_selectedDates[index])}",
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
           Container(
             padding: EdgeInsets.all(5),
@@ -257,13 +356,13 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                                 fillColor: Colors.white,
                                 hintStyle: TextStyle(color: Colors.grey[400])),
                             validator: (value) {
-                              if (value.isEmpty) {
+                              if (value!.isEmpty) {
                                 return 'Enter City Name';
                               }
 
                               return null;
                             },
-                            controller: _firstName,
+                            controller: cityController,
                           ),
                         ),
                       ),
@@ -286,12 +385,12 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                                 fillColor: Colors.white,
                                 hintStyle: TextStyle(color: Colors.grey[400])),
                             validator: (value) {
-                              if (value.isEmpty) {
+                              if (value!.isEmpty) {
                                 return 'Enter State';
                               }
                               return null;
                             },
-                            controller: _lastName,
+                            controller: stateController,
                           ),
                         ),
                       ),
@@ -322,12 +421,66 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                             fillColor: Colors.white,
                             hintStyle: TextStyle(color: Colors.grey[400])),
                         validator: (value) {
-                          if (value.isEmpty) {
+                          if (value!.isEmpty) {
                             return 'Enter Zip Code';
                           }
                           return null;
                         },
-                        controller: _firstName,
+                        controller: zipController,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () {
+                      _saveLocation();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            gradient: LinearGradient(colors: [
+                              Color.fromRGBO(143, 148, 251, 1),
+                              Color.fromRGBO(143, 148, 251, .6),
+                            ])),
+                        child: Center(
+                          child: Text(
+                            "Save City",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Visibility(
+                    visible: locations.length > 0 ? true : false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Container(
+                        width: width,
+                        child: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.start,
+                          children: List.generate(
+                            locations.length,
+                            (index) => Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 3.0, vertical: 5.0),
+                              margin: EdgeInsets.all(3.0),
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(25.0),
+                              ),
+                              child: Text(
+                                "${locations[index]}",
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -365,19 +518,21 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                             fillColor: Colors.white,
                             hintStyle: TextStyle(color: Colors.grey[400])),
                         validator: (value) {
-                          if (value.isEmpty) {
+                          if (value!.isEmpty) {
                             return 'Wardrobe Specifications';
                           }
                           return null;
                         },
-                        controller: _firstName,
+                        controller: wardrobController,
                       ),
                     ),
                   ),
                   SizedBox(height: 10),
                   CustomCheckBox(
                     title: "Should Model arrive Make-up ready ?",
-                    onChanged: (value) {},
+                    onChanged: (value) {
+                      isMakeupReady = value;
+                    },
                     values: ["Yes", "No"],
                   )
                 ],
@@ -385,6 +540,85 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
             ),
           ),
         ]),
+        SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Text("Anything Else? :"),
+        ),
+        SizedBox(height: 10),
+        AnimatedContainer(
+          height: MediaQuery.of(context).size.height * 0.25,
+          width: MediaQuery.of(context).size.width,
+          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: Duration(milliseconds: 600),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: anythingElseController,
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: null,
+              decoration: InputDecoration(
+                  border: InputBorder.none, hintText: "Send Custom Proposal"),
+            ),
+          ),
+        ),
+        SizedBox(height: 10),
+        GestureDetector(
+          onTap: () async {
+            if (selectedJobType == '' ||
+                estimatedDuration == '' ||
+                _selectedDates.length == 0 ||
+                locations.length == 0 ||
+                wardrobController.text.isEmpty ||
+                isProvidingWardrobe == null ||
+                isMakeupReady == null) {
+              Fluttertoast.showToast(msg: "complete all details");
+            } else {
+              await ProposalService.submitProposal(
+                  anythingElse: anythingElseController.text,
+                  locations: locations,
+                  duration: estimatedDuration,
+                  hourlyRate: (widget.details!.data() as dynamic)["hourlyRate"],
+                  jobtype: selectedJobType,
+                  potDates: _selectedDates,
+                  uid: (widget.details!.data() as dynamic)["uid"],
+                  wardrob: isProvidingWardrobe,
+                  wardspecs: wardrobController.text,
+                  isMakeupReady: isMakeupReady);
+              Fluttertoast.showToast(msg: "proposal submitted");
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: LinearGradient(colors: [
+                    Color.fromRGBO(143, 148, 251, 1),
+                    Color.fromRGBO(143, 148, 251, .6),
+                  ])),
+              child: Center(
+                child: Text(
+                  "Submit Application",
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Text(
+              "Estimated total is:_____ plus 5.9% booking fee _____ ( estimated total is based of models hourly rate and duration of booking. You will not be charged until model accepts the job offer.)"),
+        ),
+        SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
@@ -448,7 +682,7 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
   // We don't need to pass a context to the _show() function
   // You can safety use context as below
   Future<void> _show() async {
-    final TimeOfDay result =
+    final TimeOfDay? result =
         await showTimePicker(context: context, initialTime: TimeOfDay.now());
     if (result != null) {
       setState(() {
@@ -482,7 +716,7 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
             ),
             decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(5)),
-                border: Border.all(color: Colors.grey[400])),
+                border: Border.all(color: Colors.grey.shade400)),
             child: DropdownSearch<String>(
               showSearchBox: true,
               dropdownSearchDecoration: InputDecoration(
@@ -494,14 +728,11 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                 border: InputBorder.none,
                 floatingLabelBehavior: FloatingLabelBehavior.never,
               ),
-              searchBoxDecoration: InputDecoration(
-                hintText: "Search Course",
-              ),
               mode: Mode.DIALOG,
               // showSelectedItem: true,
               items: jobTypeList,
               // label: "Indusry",
-              itemAsString: (item) => item,
+              itemAsString: (item) => "$item",
               hint: "Choose Job Type",
               // popupItemDisabled: (String s) => s.startsWith('I'),
               onChanged: (value) {
@@ -541,7 +772,7 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
             ),
             decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(5)),
-                border: Border.all(color: Colors.grey[400])),
+                border: Border.all(color: Colors.grey.shade400)),
             child: DropdownSearch<String>(
               showSearchBox: true,
               dropdownSearchDecoration: InputDecoration(
@@ -553,12 +784,9 @@ class _ProposalsDetailsState extends State<ProposalsDetails> {
                 border: InputBorder.none,
                 floatingLabelBehavior: FloatingLabelBehavior.never,
               ),
-              searchBoxDecoration: InputDecoration(
-                hintText: "Estimated Duration",
-              ),
               mode: Mode.DIALOG,
               items: estimatedDurationList,
-              itemAsString: (item) => item,
+              itemAsString: (item) => "$item",
               hint: "Select Estimated Time Duration",
               onChanged: (value) {
                 estimatedDuration = value;
